@@ -1,0 +1,175 @@
+import os, time, json
+os.environ["TQDM_DISABLE"] = "1"   # try to silence tqdm if DoWhy uses it
+
+import numpy as np
+import pandas as pd
+import networkx as nx
+import matplotlib.pyplot as plt
+from dowhy import gcm
+from tqdm import tqdm  # Import tqdm for progress bar
+
+# ============================ ANOMALY SCORE UTILS ============================
+
+def topk_influenced_targets_from_adj(adj_df: pd.DataFrame, k=5, threshold=0.3):
+    numeric = adj_df.astype(float).fillna(0.0)
+    w = numeric.where(numeric.abs() > threshold, 0.0).abs()
+    in_weight_sum = w.sum(axis=1)
+    return list(in_weight_sum.sort_values(ascending=False).head(k).index)
+
+def attribution_dict_to_vector(attr_dict, variable_names):
+    return np.array([float(attr_dict.get(v, np.array([0.0]))[0]) for v in variable_names], dtype=float)
+
+def classify_row_by_anomaly_score(
+    row_df, model_B, model_M,
+    variable_names,
+    T_ben, T_mal,
+    tie_break="malicious",
+    return_details=True
+):
+    """
+    Classifies a row by aggregating the magnitude of its anomaly attributions.
+    The model that assigns a lower total anomaly score is the better fit.
+    """
+    total_score_B = 0
+    for t in T_ben:
+        attr = gcm.attribute_anomalies(model_B, t, anomaly_samples=row_df)
+        vec = attribution_dict_to_vector(attr, variable_names)
+        total_score_B += np.sum(vec)  # Sum of signed values
+
+    total_score_M = 0
+    for t in T_mal:
+        attr = gcm.attribute_anomalies(model_M, t, anomaly_samples=row_df)
+        vec = attribution_dict_to_vector(attr, variable_names)
+        total_score_M += np.sum(vec)  # Sum of signed values
+
+    # Classify based on the comparison of the total anomaly scores
+    if total_score_M > total_score_B:
+        label = "malicious"
+    else:
+        label = "benign"
+
+    res = {
+        "TotalScore_B": total_score_B,
+        "TotalScore_M": total_score_M,
+        "label": label
+    }
+    return res if return_details else label
+
+def visualize_causal_graph(adjacency_matrix, variable_names, threshold=0.01):
+    """Draw causal graph thresholded (optional; safe to comment out to save time)."""
+    if isinstance(adjacency_matrix, pd.DataFrame):
+        adjacency_matrix = adjacency_matrix.to_numpy()
+    G = nx.DiGraph()
+    G.add_nodes_from(variable_names)
+    n = len(variable_names)
+    for i in range(n):
+        for j in range(n):
+            if abs(adjacency_matrix[i, j]) > threshold:
+                G.add_edge(variable_names[j], variable_names[i], weight=adjacency_matrix[i, j])
+    pos = nx.spring_layout(G)
+    nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=1200, font_size=7, arrowsize=15)
+    edge_labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels={e:f"{w:.2f}" for e,w in edge_labels.items()}, font_color='red', font_size=6)
+    #plt.title("Causal Graph (thresholded)")
+    #plt.show()
+    return G
+# ===================================== DATA & SPLIT =====================================
+SEED = 42
+TRAIN_FRAC = 0.8
+RESULTS_CSV = "./row_results_anomaly_score.csv"
+CONFUSION_2x2_CSV = "./confusion_matrix_2x2_anomaly_score.csv"
+
+print("[INFO] Loading and shuffling data…")
+df = pd.read_csv('./UNSW_NB15_freq_scaled.csv')
+df = df.drop(columns=['attack_cat'], errors='ignore')
+assert 'label' in df.columns, "Expected a 'label' column."
+
+df0 = df[df['label']==0].sample(frac=1.0, random_state=SEED).reset_index(drop=True)
+df1 = df[df['label']==1].sample(frac=1.0, random_state=SEED).reset_index(drop=True)
+n0, n1 = len(df0), len(df1)
+n0_tr = int(TRAIN_FRAC*n0); n1_tr = int(TRAIN_FRAC*n1)
+train_df = pd.concat([df0.iloc[:n0_tr], df1.iloc[:n1_tr]], axis=0).sample(frac=1.0, random_state=SEED).reset_index(drop=True)
+test_df  = pd.concat([df0.iloc[n0_tr:], df1.iloc[n1_tr:]], axis=0).sample(frac=1.0, random_state=SEED).reset_index(drop=True)
+print(f"[INFO] Train size: {len(train_df)} | Test size: {len(test_df)}")
+
+feature_names = [c for c in df.columns if c != 'label']
+
+# ===================================== GRAPHS & MODELS =====================================
+print("\n[INFO] Loading adjacency matrices…")
+adj_ben = pd.read_csv('./benign_culingam_adjacency_matrix_gpu.csv', index_col=0)
+adj_mal = pd.read_csv('./malicious_culingam_adjacency_matrix_gpu.csv', index_col=0)
+
+train_ben = train_df[train_df['label']==0][feature_names]
+train_mal = train_df[train_df['label']==1][feature_names]
+test_X = test_df[feature_names]
+test_y = test_df['label'].values
+
+print("\n[INFO] Fitting causal models on TRAIN…")
+t0 = time.time()
+G_benign = visualize_causal_graph(adj_ben, variable_names=feature_names, threshold=1.0)
+G_malicious = visualize_causal_graph(adjacency_matrix=adj_mal, variable_names=feature_names, threshold=1.0)
+model_B = gcm.InvertibleStructuralCausalModel(G_benign)
+model_M = gcm.InvertibleStructuralCausalModel(G_malicious)
+gcm.auto.assign_causal_mechanisms(model_B, train_ben); gcm.fit(model_B, train_ben)
+gcm.auto.assign_causal_mechanisms(model_M, train_mal); gcm.fit(model_M, train_mal)
+print(f"[INFO] Models fitted in {time.time()-t0:.2f}s")
+
+K_REF = 3
+print("\n[INFO] Selecting top-K targets from adjacencies…")
+T_ben = topk_influenced_targets_from_adj(adj_ben, k=K_REF, threshold=0.5)
+T_mal = topk_influenced_targets_from_adj(adj_mal, k=K_REF, threshold=0.5)
+print("    T_ben:", T_ben)
+print("    T_mal:", T_mal)
+print("\n[INFO] Setup complete. Proceeding to classification.")
+
+
+# ===================================== EVALUATION (SEQUENTIAL) =====================================
+print("[INFO] Classifying first 10 test rows sequentially…")
+indices = list(range(10))  # Only first 10 rows for testing
+results = []
+
+# Using tqdm for progress bar
+for i in tqdm(indices, desc="Classifying rows", unit="row"):
+    res = classify_row_by_anomaly_score(
+        test_X.iloc[[i]],
+        model_B, model_M,
+        feature_names,
+        T_ben, T_mal,
+        tie_break="malicious", return_details=True
+    )
+    results.append({
+        "row_index": int(test_df.index[i]),
+        "true_label": int(test_y[i]),
+        "true_name": "benign" if test_y[i] == 0 else "malicious",
+        "pred_label": res["label"],
+        "TotalScore_B": res["TotalScore_B"],
+        "TotalScore_M": res["TotalScore_M"]
+    })
+
+# ============================ SAVE RESULTS & CONFUSION MATRIX ============================
+results_df = pd.DataFrame(results)
+results_df.to_csv(RESULTS_CSV, index=False)
+print(f"\n[INFO] Saved row results → {RESULTS_CSV}")
+print(results_df.head(5))
+
+labels = ["benign", "malicious"]
+cm2 = pd.DataFrame(0, index=labels, columns=labels, dtype=int)
+for t, p in zip(results_df["true_name"], results_df["pred_label"]):
+    cm2.loc[t, p] += 1
+cm2.to_csv(CONFUSION_2x2_CSV)
+print(f"\n[INFO] 2×2 confusion matrix:\n{cm2}\nSaved → {CONFUSION_2x2_CSV}")
+
+total = cm2.values.sum()
+acc = (np.trace(cm2.values)/total) if total else np.nan
+tp_b = cm2.loc["benign", "benign"]
+fp_b = cm2.loc["malicious", "benign"]
+fn_b = cm2.loc["benign", "malicious"]
+tp_m = cm2.loc["malicious", "malicious"]
+fp_m = cm2.loc["benign", "malicious"]
+fn_m = cm2.loc["malicious", "benign"]
+prec_b = tp_b / max(tp_b + fp_b, 1)
+rec_b = tp_b / max(tp_b + fn_b, 1)
+prec_m = tp_m / max(tp_m + fp_m, 1)
+rec_m = tp_m / max(tp_m + fn_m, 1)
+
+print(f"\n[INFO] Accuracy={acc:.4f} | Benign P/R={prec_b:.3f}/{rec_b:.3f} | Malicious P/R={prec_m:.3f}/{rec_m:.3f}")
