@@ -1,0 +1,330 @@
+When using this auto assignment function, the given data is used to automatically assign a causal mechanism to each node. Note that causal mechanisms can also be customized and assigned manually.
+The following types of causal mechanisms are considered for the automatic selection:
+
+If root node:
+An empirical distribution, i.e., the distribution is represented by randomly sampling from the provided data. This provides a flexible and non-parametric way to model the marginal distribution and is valid for all types of data modalities.
+
+If non-root node and the data is continuous:
+Additive Noise Models (ANM) of the form X_i = f(PA_i) + N_i, where PA_i are the parents of X_i and the unobserved noise N_i is assumed to be independent of PA_i.To select the best model for f, different regression models are evaluated and the model with the smallest mean squared error is selected.Note that minimizing the mean squared error here is equivalent to selecting the best choice of an ANM.
+
+If non-root node and the data is discrete:
+Discrete Additive Noise Models have almost the same definition as non-discrete ANMs, but come with an additional constraint for f to only return discrete values.
+Note that 'discrete' here refers to numerical values with an order. If the data is categorical, consider representing them as strings to ensure proper model selection.
+
+If non-root node and the data is categorical:
+A functional causal model based on a classifier, i.e., X_i = f(PA_i, N_i).
+Here, N_i follows a uniform distribution on [0, 1] and is used to randomly sample a class (category) using the conditional probability distribution produced by a classification model.Here, different model classes are evaluated using the (negative) F1 score and the best performing model class is selected.
+
+In total, 42 nodes were analyzed:
+
+--- Node: sbytes
+Node sbytes is a root node. Therefore, assigning 'Empirical Distribution' to the node representing the marginal distribution.
+
+--- Node: response_body_len
+Node response_body_len is a root node. Therefore, assigning 'Empirical Distribution' to the node representing the marginal distribution.
+
+--- Node: is_ftp_login
+Node is_ftp_login is a root node. Therefore, assigning 'Empirical Distribution' to the node representing the marginal distribution.
+
+--- Node: is_sm_ips_ports
+Node is_sm_ips_ports is a root node. Therefore, assigning 'Empirical Distribution' to the node representing the marginal distribution.
+
+--- Node: dbytes
+Node dbytes is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using LinearRegression' to the node.
+This represents the discrete causal relationship as dbytes := f(response_body_len) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 20913539161.112724
+HistGradientBoostingRegressor: 21239157934.087547
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 21271113875.443974
+
+--- Node: dload
+Node dload is a non-root node with continuous data. Assigning 'AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the causal relationship as dload := f(is_ftp_login,response_body_len) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 5893194864921.874
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 5896253666563.271
+LinearRegression: 5899590945980.076
+
+--- Node: synack
+Node synack is a non-root node with continuous data. Assigning 'AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the causal relationship as synack := f(is_ftp_login) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 0.005305071900306974
+LinearRegression: 0.005305819165655317
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 0.005306528588850598
+
+--- Node: ct_dst_sport_ltm
+Node ct_dst_sport_ltm is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as ct_dst_sport_ltm := f(is_ftp_login) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 58.8761988840817
+LinearRegression: 58.94637886809339
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 58.95536099553677
+
+--- Node: ct_ftp_cmd
+Node ct_ftp_cmd is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using LinearRegression' to the node.
+This represents the discrete causal relationship as ct_ftp_cmd := f(is_ftp_login) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 9.716992590792157e-05
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 9.716992590792159e-05
+HistGradientBoostingRegressor: 0.0001445472722039851
+
+--- Node: ct_flw_http_mthd
+Node ct_flw_http_mthd is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as ct_flw_http_mthd := f(is_ftp_login) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 0.4080407366978383
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 0.4080433567099077
+LinearRegression: 0.4080446093419992
+
+--- Node: tcprtt
+Node tcprtt is a non-root node with continuous data. Assigning 'AdditiveNoiseModel using LinearRegression' to the node.
+This represents the causal relationship as tcprtt := f(synack) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 0.0019978455984611767
+HistGradientBoostingRegressor: 0.005336819714978323
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 0.11193775910762468
+
+--- Node: ct_src_dport_ltm
+Node ct_src_dport_ltm is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as ct_src_dport_ltm := f(ct_dst_sport_ltm) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 11.223203842070685
+LinearRegression: 11.893732783204939
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 11.950253307250863
+
+--- Node: dinpkt
+Node dinpkt is a non-root node with continuous data. Assigning 'AdditiveNoiseModel using LinearRegression' to the node.
+This represents the causal relationship as dinpkt := f(ct_flw_http_mthd) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 1677299.3453804147
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 1677704.368230412
+HistGradientBoostingRegressor: 1677929.4798813567
+
+--- Node: trans_depth
+Node trans_depth is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as trans_depth := f(ct_flw_http_mthd,is_ftp_login) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 0.20741435997608354
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 0.24330961567956697
+LinearRegression: 0.2625116583564119
+
+--- Node: ackdat
+Node ackdat is a non-root node with continuous data. Assigning 'AdditiveNoiseModel using Pipeline' to the node.
+This represents the causal relationship as ackdat := f(synack,tcprtt) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 9.801760348567043e-29
+LinearRegression: 9.943355916515687e-29
+HistGradientBoostingRegressor: 0.001106783185073677
+
+--- Node: sjit
+Node sjit is a non-root node with continuous data. Assigning 'AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the causal relationship as sjit := f(ct_flw_http_mthd,ct_src_dport_ltm) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 3221271224.1123633
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 3226684928.1792603
+LinearRegression: 3227163423.336794
+
+--- Node: sinpkt
+Node sinpkt is a non-root node with continuous data. Assigning 'AdditiveNoiseModel using LinearRegression' to the node.
+This represents the causal relationship as sinpkt := f(ct_flw_http_mthd,ct_src_dport_ltm,dinpkt,is_ftp_login) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 37999409.79366871
+HistGradientBoostingRegressor: 38200579.205833785
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 38250915.05515798
+
+--- Node: dttl
+Node dttl is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as dttl := f(ct_dst_sport_ltm,ct_flw_http_mthd,ct_src_dport_ltm,is_ftp_login,is_sm_ips_ports,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 9640.215243440067
+LinearRegression: 17123.00696830896
+
+--- Node: dtcpb
+Node dtcpb is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as dtcpb := f(ct_dst_sport_ltm,ct_flw_http_mthd,ct_src_dport_ltm,dbytes,dload,dttl,is_ftp_login,sinpkt,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 8.999707975908216e+17
+LinearRegression: 1.071215092096086e+18
+
+--- Node: dwin
+Node dwin is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as dwin := f(ackdat,ct_dst_sport_ltm,ct_flw_http_mthd,ct_ftp_cmd,ct_src_dport_ltm,dttl,is_sm_ips_ports,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 123.25065103130132
+LinearRegression: 6472.925879410026
+
+--- Node: stcpb
+Node stcpb is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as stcpb := f(ct_dst_sport_ltm,ct_flw_http_mthd,ct_ftp_cmd,ct_src_dport_ltm,dbytes,dload,dtcpb,dttl,is_ftp_login,sinpkt,sjit,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 7.594544092540666e+17
+LinearRegression: 9.821522670432809e+17
+
+--- Node: dloss
+Node dloss is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using LinearRegression' to the node.
+This represents the discrete causal relationship as dloss := f(ct_dst_sport_ltm,ct_flw_http_mthd,ct_src_dport_ltm,dwin,is_ftp_login,synack,tcprtt,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 3112.374990890891
+HistGradientBoostingRegressor: 3237.414204094708
+
+--- Node: swin
+Node swin is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using Pipeline' to the node.
+This represents the discrete causal relationship as swin := f(ct_dst_sport_ltm,ct_src_dport_ltm,dwin,is_sm_ips_ports) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 1283.4020729256727
+LinearRegression: 1286.9612230277296
+HistGradientBoostingRegressor: 1294.7022367548072
+
+--- Node: ct_state_ttl
+Node ct_state_ttl is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as ct_state_ttl := f(ackdat,ct_flw_http_mthd,ct_ftp_cmd,dwin,is_sm_ips_ports,tcprtt) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 0.686651976751932
+LinearRegression: 0.7269385501943153
+
+--- Node: dpkts
+Node dpkts is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using LinearRegression' to the node.
+This represents the discrete causal relationship as dpkts := f(ackdat,ct_flw_http_mthd,ct_state_ttl,dloss,dttl,is_ftp_login,swin,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 481.38776412426284
+HistGradientBoostingRegressor: 5862.476506152668
+
+--- Node: ct_dst_ltm
+Node ct_dst_ltm is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as ct_dst_ltm := f(ct_flw_http_mthd,ct_ftp_cmd,ct_src_dport_ltm,ct_state_ttl,dwin,is_sm_ips_ports,swin,synack,tcprtt) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 4.196523687434897
+LinearRegression: 4.539506297544557
+
+--- Node: sloss
+Node sloss is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using Pipeline' to the node.
+This represents the discrete causal relationship as sloss := f(ct_flw_http_mthd,ct_state_ttl,dloss,dpkts,is_ftp_login) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+Pipeline(steps=[('polynomialfeatures', PolynomialFeatures(include_bias=False)),
+                ('linearregression', LinearRegression)]): 465.61963780687785
+LinearRegression: 673.1467239128103
+HistGradientBoostingRegressor: 1104.4538570058019
+
+--- Node: ct_src_ltm
+Node ct_src_ltm is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using LinearRegression' to the node.
+This represents the discrete causal relationship as ct_src_ltm := f(ct_dst_ltm,ct_dst_sport_ltm,ct_flw_http_mthd,ct_src_dport_ltm,ct_state_ttl,is_ftp_login,is_sm_ips_ports,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 8.930372688833998
+HistGradientBoostingRegressor: 9.931892833884486
+
+--- Node: ct_dst_src_ltm
+Node ct_dst_src_ltm is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using LinearRegression' to the node.
+This represents the discrete causal relationship as ct_dst_src_ltm := f(ackdat,ct_dst_ltm,ct_dst_sport_ltm,ct_src_dport_ltm,ct_src_ltm,ct_state_ttl,is_sm_ips_ports) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 31.704180740771886
+HistGradientBoostingRegressor: 43.67124416294271
+
+--- Node: ct_srv_dst
+Node ct_srv_dst is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as ct_srv_dst := f(ackdat,ct_dst_ltm,ct_dst_sport_ltm,ct_dst_src_ltm,ct_flw_http_mthd,ct_ftp_cmd,ct_src_dport_ltm,ct_src_ltm,dloss,is_sm_ips_ports,sloss,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 13.945403444450088
+LinearRegression: 14.576782874551654
+
+--- Node: label
+Node label is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as label := f(ct_dst_src_ltm,ct_flw_http_mthd,ct_ftp_cmd,ct_state_ttl,is_sm_ips_ports,synack,tcprtt) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 0.2101956980631745
+LinearRegression: 0.3881134000309988
+
+--- Node: ct_srv_src
+Node ct_srv_src is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using LinearRegression' to the node.
+This represents the discrete causal relationship as ct_srv_src := f(ct_dst_ltm,ct_dst_sport_ltm,ct_dst_src_ltm,ct_flw_http_mthd,ct_src_dport_ltm,ct_src_ltm,ct_srv_dst,ct_state_ttl,is_ftp_login,is_sm_ips_ports,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 5.349559287605788
+HistGradientBoostingRegressor: 6.467347861715007
+
+--- Node: attack_cat
+Node attack_cat is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as attack_cat := f(ct_dst_sport_ltm,ct_dst_src_ltm,ct_flw_http_mthd,ct_src_dport_ltm,ct_src_ltm,ct_state_ttl,dloss,is_ftp_login,is_sm_ips_ports,label,tcprtt,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 0.9902150481974225
+LinearRegression: 1.1958474471044194
+
+--- Node: id
+Node id is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as id := f(ct_dst_ltm,ct_dst_sport_ltm,ct_dst_src_ltm,ct_flw_http_mthd,ct_src_dport_ltm,ct_src_ltm,ct_srv_dst,ct_srv_src,ct_state_ttl,dbytes,dloss,dpkts,dttl,dwin,is_ftp_login,is_sm_ips_ports,sbytes,sloss,swin,synack,tcprtt,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 1584281703.3213406
+LinearRegression: 1605337717.795752
+
+--- Node: spkts
+Node spkts is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using LinearRegression' to the node.
+This represents the discrete causal relationship as spkts := f(attack_cat,ct_dst_sport_ltm,ct_dst_src_ltm,ct_flw_http_mthd,ct_src_dport_ltm,ct_src_ltm,ct_state_ttl,dloss,dpkts,dttl,dwin,is_ftp_login,is_sm_ips_ports,sloss,swin,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 264.19728845348106
+HistGradientBoostingRegressor: 4452.771125061669
+
+--- Node: smean
+Node smean is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as smean := f(attack_cat,ct_dst_ltm,ct_dst_sport_ltm,ct_dst_src_ltm,ct_flw_http_mthd,ct_src_ltm,ct_srv_dst,ct_srv_src,ct_state_ttl,dloss,dpkts,dttl,dwin,is_ftp_login,is_sm_ips_ports,label,sloss,swin) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 14357.110053894949
+LinearRegression: 39632.97302985328
+
+--- Node: rate
+Node rate is a non-root node with continuous data. Assigning 'AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the causal relationship as rate := f(attack_cat,ct_dst_ltm,ct_dst_sport_ltm,ct_dst_src_ltm,ct_flw_http_mthd,ct_src_dport_ltm,ct_src_ltm,ct_srv_dst,ct_srv_src,ct_state_ttl,dloss,dpkts,dttl,dwin,id,is_sm_ips_ports,label,sbytes,sinpkt,sloss,swin,synack,tcprtt) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 2506498217.213831
+LinearRegression: 24671163310.171227
+
+--- Node: dur
+Node dur is a non-root node with continuous data. Assigning 'AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the causal relationship as dur := f(attack_cat,ct_dst_ltm,ct_dst_sport_ltm,ct_flw_http_mthd,ct_src_dport_ltm,ct_srv_dst,ct_state_ttl,dloss,is_sm_ips_ports,label,spkts) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 20.156181846738484
+LinearRegression: 32.13730820237043
+
+--- Node: dmean
+Node dmean is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as dmean := f(attack_cat,ct_dst_ltm,ct_dst_sport_ltm,ct_dst_src_ltm,ct_flw_http_mthd,ct_ftp_cmd,ct_src_dport_ltm,ct_src_ltm,ct_srv_dst,ct_state_ttl,dloss,dpkts,dttl,dwin,label,sloss,smean,spkts,swin,synack,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 2165.0775869810127
+LinearRegression: 34526.87978923814
+
+--- Node: sload
+Node sload is a non-root node with continuous data. Assigning 'AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the causal relationship as sload := f(attack_cat,ct_dst_sport_ltm,ct_dst_src_ltm,ct_src_dport_ltm,ct_srv_dst,ct_srv_src,ct_state_ttl,dloss,dttl,dwin,id,is_sm_ips_ports,label,rate,sinpkt,swin,synack,tcprtt) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 1.7860929597932886e+16
+LinearRegression: 3.677625015271819e+16
+
+--- Node: sttl
+Node sttl is a non-root node with discrete data. Assigning 'Discrete AdditiveNoiseModel using HistGradientBoostingRegressor' to the node.
+This represents the discrete causal relationship as sttl := f(ackdat,attack_cat,ct_dst_ltm,ct_dst_sport_ltm,ct_dst_src_ltm,ct_flw_http_mthd,ct_src_dport_ltm,ct_src_ltm,ct_srv_dst,ct_srv_src,ct_state_ttl,dloss,dmean,dpkts,dttl,dwin,is_ftp_login,is_sm_ips_ports,label,sloss,spkts,swin,tcprtt,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+HistGradientBoostingRegressor: 1276.9853992829198
+LinearRegression: 7114.669270172776
+
+--- Node: djit
+Node djit is a non-root node with continuous data. Assigning 'AdditiveNoiseModel using LinearRegression' to the node.
+This represents the causal relationship as djit := f(attack_cat,ct_dst_src_ltm,ct_flw_http_mthd,ct_src_dport_ltm,ct_src_ltm,ct_srv_dst,ct_state_ttl,dinpkt,dmean,dpkts,dttl,dwin,is_ftp_login,label,sjit,sloss,smean,spkts,swin,trans_depth) + N.
+For the model selection, the following models were evaluated on the mean squared error (MSE) metric:
+LinearRegression: 8286845.811259012
+HistGradientBoostingRegressor: 8663747.977963101
+
+===Note===
+Note, based on the selected auto assignment quality, the set of evaluated models changes.
+For more insights toward the quality of the fitted graphical causal model, consider using the evaluate_causal_model function after fitting the causal mechanisms.
